@@ -13,6 +13,22 @@ void error(const char *msg)
     exit(0);
 }
 
+//compare for buffer and another string
+int compare(char str1[], char str2[])
+{
+    int i;
+    printf("%lu",strlen(str1));
+    printf("%lu",strlen(str2));
+    for(i = 0; i < strlen(str1)-1; i++) //To remove null character from buffer string
+    {
+        if(str1[i] != str2[i])
+        {
+            return 0;
+        }
+    }
+    return 1;
+}
+
 int main(int argc, char *argv[])
 {
     int sockfd, portno, n;
@@ -20,6 +36,7 @@ int main(int argc, char *argv[])
     struct hostent *server;
 
     char buffer[256];
+    char exit_string[256] = "exit";
     if (argc < 3) {
        fprintf(stderr,"usage %s hostname port\n", argv[0]);
        exit(0);
@@ -44,6 +61,12 @@ int main(int argc, char *argv[])
     printf("Please enter the message: ");
     bzero(buffer,256);
     fgets(buffer,255,stdin);
+    if(compare(buffer,exit_string))
+    {
+        printf("test");
+        close(sockfd);
+        return 0;
+    }
     n = write(sockfd,buffer,strlen(buffer));
     if (n < 0) 
          error("ERROR writing to socket");
