@@ -36,7 +36,7 @@ int main(int argc, char *argv[])
     struct hostent *server;
 
     char buffer[256];
-    char exit_string[256] = "exit";
+    char exit_string[256] = "/exit";
     if (argc < 3) {
        fprintf(stderr,"usage %s hostname port\n", argv[0]);
        exit(0);
