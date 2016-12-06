@@ -16,7 +16,7 @@ char help_string2[] =
 "/tictactoe team [clientName] - add client to your team for match\n"
 "************HELP************\n";
 
-void dostuff(int); /* function prototype */
+void run(int); /* function prototype */
 int compare(char str1[], char str2[]); /* function prototype */
 void error(const char *msg)
 {
@@ -67,12 +67,12 @@ int main(int argc, char *argv[])
   return 0; 
 }
 
-/******** DOSTUFF() *********************
+/******** RUN() **************************
  There is a separate instance of this function
  for each connection.  It handles all communication
  once a connnection has been established.
  *****************************************/
-void dostuff (int sock)
+void run(int sock)
 {
     int n, running = 1;
     char buffer[256];
