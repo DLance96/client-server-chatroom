@@ -17,8 +17,6 @@ void error(const char *msg)
 int compare(char str1[], char str2[])
 {
     int i;
-    printf("%lu",strlen(str1));
-    printf("%lu",strlen(str2));
     for(i = 0; i < strlen(str1)-1; i++) //To remove null character from buffer string
     {
         if(str1[i] != str2[i])
@@ -63,7 +61,6 @@ int main(int argc, char *argv[])
     fgets(buffer,255,stdin);
     if(compare(buffer,exit_string))
     {
-        printf("test");
         close(sockfd);
         return 0;
     }
