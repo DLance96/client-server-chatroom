@@ -5,7 +5,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <netdb.h> 
+#include <netdb.h>
 
 void error(const char *msg)
 {
@@ -56,7 +56,11 @@ int main(int argc, char *argv[])
     serv_addr.sin_port = htons(portno);
     if (connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0) 
       error("ERROR connecting");
-    
+
+    printd("> Please enter a username:");
+    bzero(buffer,256);
+    fgets(buffer,255,stdin);
+
     pid = fork();
     while(pid)
     {
