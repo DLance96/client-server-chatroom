@@ -32,8 +32,10 @@ int total_clients = 0;
 struct Client clients[100];
 
 int compare(char str1[], char str2[]); /* function prototype */
-void run(int); /* function prototype */
+void handle_client(int); /* function prototype */
 int duplicate_client(char[]); /* function prototype */
+void setup_client(char buffer[], int sock);
+void handle_messages(char buffer[],int sock);
 void error(const char *msg)
 {
     perror(msg);
@@ -74,7 +76,7 @@ int main(int argc, char *argv[])
       error("ERROR on fork");
     if (pid == 0)  {
       close(sockfd);
-      run(newsockfd);
+      handle_client(newsockfd);
       exit(0);
     }
     else close(newsockfd);
@@ -83,15 +85,27 @@ int main(int argc, char *argv[])
   return 0; 
 }
 
-/******** RUN() **************************
+/******** HANDLE_CLIENT() **************************
  There is a separate instance of this function
  for each connection.  It handles all communication
  once a connnection has been established.
  *****************************************/
-void run(int sock)
+void handle_client(int sock)
 {
-    int n, running = 1, invalid_username = 1;
     char buffer[256];
+    
+    setup_client(buffer,sock);
+    
+    handle_messages(buffer,sock);
+}
+
+/******** SETUP_CLIENT() *********************
+ Runs until client provides valid username.
+ *****************************************/
+void setup_client(char buffer[], int sock)
+{
+    
+    int invalid_username = 1;
     while(invalid_username)
     {
         bzero(buffer,256);
@@ -114,26 +128,38 @@ void run(int sock)
             strcpy(buffer,clients[total_clients].username);
             total_clients++;
             invalid_username = 0;
+            write(sock,"Username Accepted!\n",255);
         }
     }
+}
+
+/******** HANDLE_MESSAGES() *********************
+ Runs indefinitely, handling all messages 
+ supplied by the client. Handles commands, 
+ blank messages, and generic messages
+ *****************************************/
+void handle_messages(char buffer[], int sock)
+{
+    int n, running = 1;
     while(running) {
-      bzero(buffer,255);
-      n = read(sock,buffer,256);
-      if (n < 0) error("ERROR reading from socket");
-      if (strlen(buffer) <= 0) {
-        running = 0;
-        continue;
-      }
-      else if(compare(buffer,help_command))
-      {
-          write(sock,help_string1,255);
-          write(sock,help_string2,255);
-      }
-      else
-      {
-          //send to everyone else
-          printf("Here is the message: %s\n",buffer);
-      }
+        bzero(buffer,255);
+        n = read(sock,buffer,256);
+        if (n < 0) error("ERROR reading from socket");
+        if (strlen(buffer) <= 0) {
+            //change this to not exit loop? just do nothing
+            running = 0;
+            continue;
+        }
+        else if(compare(buffer,help_command))
+        {
+            write(sock,help_string1,255);
+            write(sock,help_string2,255);
+        }
+        else
+        {
+            //send to everyone else
+            printf("Here is the message: %s\n",buffer);
+        }
     }
 }
 
@@ -157,7 +183,10 @@ int compare(char str1[], char str2[])
     return 1;
 }
 
-//return true if there is a duplicate
+/******** DUPLICATE_CLIENT() *********************
+ Returns true if there is a duplicate client.
+ Currently does not work properly
+ *****************************************/
 int duplicate_client(char buffer[])
 {
     int i;
