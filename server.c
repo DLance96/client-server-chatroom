@@ -8,7 +8,7 @@
 
 char help_command[] = "/help";
 char help_string1[] =
-"\n************HELP************\n"
+"************HELP************\n"
 "/exit - exit client\n"
 "/msg [clientName] - private message another client\n"
 "/tictactoe [clientName] - start tictactoe match with another client\n";
@@ -16,8 +16,22 @@ char help_string2[] =
 "/tictactoe team [clientName] - add client to your team for match\n"
 "************HELP************\n";
 
-void run(int); /* function prototype */
+//ERRORS
+char username_length_error[] = "INVALID USERNAME: more than 20 characters";
+char username_duplicate_error[] = "INVALID USERNAME: username already exists";
+
+struct Client
+{
+    int socket;
+    char username[20];
+};
+
+int total_clients = 0;
+struct Client clients[100];
+
 int compare(char str1[], char str2[]); /* function prototype */
+void run(int); /* function prototype */
+int duplicate_client(char[]); /* function prototype */
 void error(const char *msg)
 {
     perror(msg);
@@ -58,7 +72,7 @@ int main(int argc, char *argv[])
       error("ERROR on fork");
     if (pid == 0)  {
       close(sockfd);
-      dostuff(newsockfd);
+      run(newsockfd);
       exit(0);
     }
     else close(newsockfd);
@@ -74,11 +88,32 @@ int main(int argc, char *argv[])
  *****************************************/
 void run(int sock)
 {
-    int n, running = 1;
+    int n, running = 1, invalid_username = 1;
     char buffer[256];
+    while(invalid_username)
+    {
+        bzero(buffer,256);
+        read(sock,buffer,255);
+        printf("Username Provided: %s", buffer);
+        if(strlen(buffer) >= 20)
+        {
+            write(sock,username_length_error,256);
+        }
+        else if(duplicate_client(buffer))
+        {
+            write(sock,username_duplicate_error,256);
+        }
+        else
+        {
+            clients[total_clients].socket = sock;
+            strcpy(buffer,clients[total_clients].username);
+            total_clients++;
+            invalid_username = 0;
+        }
+    }
     while(running) {
-      bzero(buffer,256);
-      n = read(sock,buffer,255);
+      bzero(buffer,255);
+      n = read(sock,buffer,256);
       if (n < 0) error("ERROR reading from socket");
       if (strlen(buffer) <= 0) {
         running = 0;
@@ -86,9 +121,8 @@ void run(int sock)
       }
       else if(compare(buffer,help_command))
       {
-          write(sock,help_string1,256);
-          n = write(sock,help_string2,256);
-          if (n < 0) error("ERROR writing to socket");
+          write(sock,help_string1,255);
+          write(sock,help_string2,255);
       }
       else
       {
@@ -116,4 +150,16 @@ int compare(char str1[], char str2[])
         }
     }
     return 1;
+}
+
+//return true if there is a duplicate
+int duplicate_client(char buffer[])
+{
+    int i;
+    for(i = 0; i < total_clients; i++)
+    {
+        if(strcmp(clients[i].username,buffer)==0)
+            return 1;
+    }
+    return 0;
 }
