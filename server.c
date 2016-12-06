@@ -5,6 +5,8 @@
 #include <sys/types.h> 
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <sys/mman.h>
+#include <sys/wait.h>
 
 //SERVER MESSAGES
 char help_command[] = "/help";
@@ -17,20 +19,19 @@ char help_string2[] =
 "/tictactoe team [clientName] - add client to your team for match\n"
 "************HELP************\n";
 char username_success[] = "Username successfully made\n";
-
 //ERRORS
 char username_length_error[] = "INVALID USERNAME: more than 20 characters\n";
 char username_duplicate_error[] = "INVALID USERNAME: username already exists\n";
-
+//STRUCTS
 struct Client
 {
     int socket;
     char username[20];
 };
-
-int total_clients = 0;
+//OTHER VARIABLES
 struct Client clients[100];
-
+int* total_clients;
+//FUNCTIONS
 int compare(char str1[], char str2[]); /* function prototype */
 void handle_client(int); /* function prototype */
 int duplicate_client(char[]); /* function prototype */
@@ -53,6 +54,8 @@ int main(int argc, char *argv[])
     fprintf(stderr,"ERROR, no port provided\n");
     exit(1);
   }
+  total_clients = mmap(NULL, sizeof(int), PROT_READ|PROT_WRITE, MAP_SHARED|MAP_ANONYMOUS, -1, 0);
+  *total_clients = 0;
   sockfd = socket(AF_INET, SOCK_STREAM, 0);
   if (sockfd < 0) 
     error("ERROR opening socket");
@@ -123,12 +126,12 @@ void setup_client(char buffer[], int sock)
         }
         else
         {
-            write(sock,username_success,256);
-            clients[total_clients].socket = sock;
-            strcpy(buffer,clients[total_clients].username);
-            total_clients++;
+            clients[*total_clients].socket = sock;
+            strcpy(buffer,clients[*total_clients].username);
+            *total_clients = *total_clients + 1;
             invalid_username = 0;
-            write(sock,"Username Accepted!\n",255);
+            printf("%d",*total_clients);
+            write(sock,username_success,255);
         }
     }
 }
@@ -190,7 +193,7 @@ int compare(char str1[], char str2[])
 int duplicate_client(char buffer[])
 {
     int i;
-    for(i = 0; i < total_clients; i++)
+    for(i = 0; i < *total_clients; i++)
     {
         if(strcmp(clients[i].username,buffer)==0)
             return 1;
