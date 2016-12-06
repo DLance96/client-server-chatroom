@@ -29,10 +29,9 @@ int compare(char str1[], char str2[])
 
 int main(int argc, char *argv[])
 {
-    int sockfd, portno, n;
+    int sockfd, portno, n, pid;
     struct sockaddr_in serv_addr;
     struct hostent *server;
-    int running = 1;
 
     char buffer[256];
     char exit_string[256] = "/exit";
@@ -57,22 +56,28 @@ int main(int argc, char *argv[])
     serv_addr.sin_port = htons(portno);
     if (connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0) 
       error("ERROR connecting");
-    while(running) {
-      printf("Please enter the message: ");
-      bzero(buffer,256);
-      fgets(buffer,255,stdin);
-      if(compare(buffer,exit_string))
-      {
-        close(sockfd);
-        return 0;
-      }
-      n = write(sockfd,buffer,strlen(buffer));
-      if (n < 0) 
-         error("ERROR writing to socket");
-      bzero(buffer,256);
-      n = read(sockfd,buffer,255);
-      if (n < 0) 
-        error("ERROR reading from socket");
-      printf("%s\n",buffer);
+    
+    pid = fork();
+    while(pid)
+    {
+        printf("> ");
+        bzero(buffer,256);
+        fgets(buffer,255,stdin);
+        if(compare(buffer,exit_string))
+        {
+            close(sockfd);
+            return 0;
+        }
+        n = write(sockfd,buffer,strlen(buffer));
+        if (n < 0)
+            error("ERROR writing to socket");
+        sleep(1);
+    }
+    while(!pid) {
+        bzero(buffer,256);
+        n = read(sockfd,buffer,255);
+        if (n < 0)
+            error("ERROR reading from socket");
+        printf("%s",buffer);
     }
 }

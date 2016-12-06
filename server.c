@@ -6,7 +6,18 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 
+char help_command[] = "/help";
+char help_string1[] =
+"\n************HELP************\n"
+"/exit - exit client\n"
+"/msg [clientName] - private message another client\n"
+"/tictactoe [clientName] - start tictactoe match with another client\n";
+char help_string2[] =
+"/tictactoe team [clientName] - add client to your team for match\n"
+"************HELP************\n";
+
 void dostuff(int); /* function prototype */
+int compare(char str1[], char str2[]); /* function prototype */
 void error(const char *msg)
 {
     perror(msg);
@@ -65,7 +76,6 @@ void dostuff (int sock)
 {
     int n, running = 1;
     char buffer[256];
-
     while(running) {
       bzero(buffer,256);
       n = read(sock,buffer,255);
@@ -74,8 +84,36 @@ void dostuff (int sock)
         running = 0;
         continue;
       }
-      printf("Here is the message: %s\n",buffer);
-      n = write(sock,"I got your message",18);
-      if (n < 0) error("ERROR writing to socket");
+      else if(compare(buffer,help_command))
+      {
+          write(sock,help_string1,256);
+          n = write(sock,help_string2,256);
+          if (n < 0) error("ERROR writing to socket");
+      }
+      else
+      {
+          //send to everyone else
+          printf("Here is the message: %s\n",buffer);
+      }
     }
+}
+
+/******** COMPARE() *********************
+ Compares the two input strings. Parameter str1 
+ must be the input from the clients as it is 
+ contains a null character. Returns value of 
+ 0 if inputs have same characters. 
+ Returns 1 otherwise.
+ *****************************************/
+int compare(char str1[], char str2[])
+{
+    int i;
+    for(i = 0; i < strlen(str1)-1; i++) //To remove null character from buffer string
+    {
+        if(str1[i] != str2[i])
+        {
+            return 0;
+        }
+    }
+    return 1;
 }
