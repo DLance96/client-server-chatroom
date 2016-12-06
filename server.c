@@ -2,11 +2,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <sys/types.h> 
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <sys/mman.h>
 #include <sys/wait.h>
+#include <sys/shm.h>
+#include <sys/stat.h>
 
 //SERVER MESSAGES
 char help_command[] = "/help";
@@ -18,18 +21,20 @@ char help_string1[] =
 char help_string2[] =
 "/tictactoe team [clientName] - add client to your team for match\n"
 "************HELP************\n";
-char username_success[] = "Username successfully made\n";
+char username_success[] = "Username created!\n";
 //ERRORS
 char username_length_error[] = "INVALID USERNAME: more than 20 characters\n";
 char username_duplicate_error[] = "INVALID USERNAME: username already exists\n";
 //STRUCTS
 struct Client
 {
-    int socket;
+    char socket[100];
     char username[20];
 };
 //OTHER VARIABLES
-struct Client clients[100];
+const char *name = "Clients";
+void *clients_ptr;
+const int SIZE = 100 * sizeof(struct Client);
 int* total_clients;
 //FUNCTIONS
 int compare(char str1[], char str2[]); /* function prototype */
@@ -45,7 +50,7 @@ void error(const char *msg)
 
 int main(int argc, char *argv[])
 {
-  int sockfd, newsockfd, portno, pid;
+  int sockfd, newsockfd, portno, pid, shm_fd;
   socklen_t clilen;
   char buffer[256];
   struct sockaddr_in serv_addr, cli_addr;
@@ -54,8 +59,17 @@ int main(int argc, char *argv[])
     fprintf(stderr,"ERROR, no port provided\n");
     exit(1);
   }
-  total_clients = mmap(NULL, sizeof(int), PROT_READ|PROT_WRITE, MAP_SHARED|MAP_ANONYMOUS, -1, 0);
+  //Shared Memory declaration
+  total_clients = mmap(NULL, sizeof(int), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
   *total_clients = 0;
+  shm_fd = shm_open(name, O_CREAT | O_RDWR, 0666);
+  ftruncate(shm_fd, SIZE);
+  clients_ptr = mmap(0, SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
+  if(clients_ptr ==  MAP_FAILED) {
+    printf("Map failed\n");
+    return -1;
+  }
+
   sockfd = socket(AF_INET, SOCK_STREAM, 0);
   if (sockfd < 0) 
     error("ERROR opening socket");
@@ -96,9 +110,7 @@ int main(int argc, char *argv[])
 void handle_client(int sock)
 {
     char buffer[256];
-    
     setup_client(buffer,sock);
-    
     handle_messages(buffer,sock);
 }
 
@@ -107,7 +119,6 @@ void handle_client(int sock)
  *****************************************/
 void setup_client(char buffer[], int sock)
 {
-    
     int invalid_username = 1;
     while(invalid_username)
     {
@@ -126,11 +137,10 @@ void setup_client(char buffer[], int sock)
         }
         else
         {
-            clients[*total_clients].socket = sock;
-            strcpy(buffer,clients[*total_clients].username);
+            sprintf(((struct Client *)clients_ptr)[*total_clients].socket, "%d", sock);
+            sprintf(((struct Client *)clients_ptr)[*total_clients].username, "%s", buffer);
             *total_clients = *total_clients + 1;
             invalid_username = 0;
-            printf("%d",*total_clients);
             write(sock,username_success,255);
         }
     }
@@ -161,7 +171,7 @@ void handle_messages(char buffer[], int sock)
         else
         {
             //send to everyone else
-            printf("Here is the message: %s\n",buffer);
+            printf("Here is the message: %s",buffer);
         }
     }
 }
@@ -195,7 +205,7 @@ int duplicate_client(char buffer[])
     int i;
     for(i = 0; i < *total_clients; i++)
     {
-        if(strcmp(clients[i].username,buffer)==0)
+        if(strcmp(((struct Client *)clients_ptr)[i].username,buffer)==0)
             return 1;
     }
     return 0;
