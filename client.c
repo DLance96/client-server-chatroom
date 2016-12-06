@@ -63,10 +63,15 @@ int main(int argc, char *argv[])
     n = write(sockfd,buffer,strlen(buffer));
     if (n < 0)
         error("ERROR writing to socket");
+    
+    bzero(buffer,256);
+    read(sockfd,buffer,255);
+    printf("%s",buffer);
 
     pid = fork();
     while(pid)
     {
+        sleep(1);
         printf("> ");
         bzero(buffer,256);
         fgets(buffer,255,stdin);
@@ -78,13 +83,12 @@ int main(int argc, char *argv[])
         n = write(sockfd,buffer,strlen(buffer));
         if (n < 0)
             error("ERROR writing to socket");
-        sleep(1);
     }
     while(!pid) {
-        bzero(buffer,256);
         n = read(sockfd,buffer,255);
         if (n < 0)
             error("ERROR reading from socket");
         printf("%s",buffer);
+        bzero(buffer,256);
     }
 }
