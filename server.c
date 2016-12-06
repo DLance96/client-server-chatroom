@@ -6,6 +6,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 
+//SERVER MESSAGES
 char help_command[] = "/help";
 char help_string1[] =
 "************HELP************\n"
@@ -15,10 +16,11 @@ char help_string1[] =
 char help_string2[] =
 "/tictactoe team [clientName] - add client to your team for match\n"
 "************HELP************\n";
+char username_success[] = "Username successfully made\n";
 
 //ERRORS
-char username_length_error[] = "INVALID USERNAME: more than 20 characters";
-char username_duplicate_error[] = "INVALID USERNAME: username already exists";
+char username_length_error[] = "INVALID USERNAME: more than 20 characters\n";
+char username_duplicate_error[] = "INVALID USERNAME: username already exists\n";
 
 struct Client
 {
@@ -97,14 +99,17 @@ void run(int sock)
         printf("Username Provided: %s", buffer);
         if(strlen(buffer) >= 20)
         {
+            bzero(buffer,256);
             write(sock,username_length_error,256);
         }
         else if(duplicate_client(buffer))
         {
+            bzero(buffer,256);
             write(sock,username_duplicate_error,256);
         }
         else
         {
+            write(sock,username_success,256);
             clients[total_clients].socket = sock;
             strcpy(buffer,clients[total_clients].username);
             total_clients++;
