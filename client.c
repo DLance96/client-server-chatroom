@@ -57,9 +57,12 @@ int main(int argc, char *argv[])
     if (connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0) 
       error("ERROR connecting");
 
-    printd("> Please enter a username:");
+    printf("> Please enter a username: ");
     bzero(buffer,256);
     fgets(buffer,255,stdin);
+    n = write(sockfd,buffer,strlen(buffer));
+    if (n < 0)
+        error("ERROR writing to socket");
 
     pid = fork();
     while(pid)
