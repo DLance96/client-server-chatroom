@@ -37,20 +37,20 @@ int main(int argc, char *argv[])
     error("ERROR on binding");
   listen(sockfd,5);
   clilen = sizeof(cli_addr);
-    while (1) {
-        newsockfd = accept(sockfd,
-                           (struct sockaddr *) &cli_addr, &clilen);
-        if (newsockfd < 0)
-            error("ERROR on accept");
-        pid = fork();
-        if (pid < 0)
-            error("ERROR on fork");
-        if (pid == 0)  {
-            close(sockfd);
-            dostuff(newsockfd);
-            exit(0);
-        }
-        else close(newsockfd);
+  while (1) {
+    newsockfd = accept(sockfd,
+      (struct sockaddr *) &cli_addr, &clilen);
+    if (newsockfd < 0)
+      error("ERROR on accept");
+    pid = fork();
+    if (pid < 0)
+      error("ERROR on fork");
+    if (pid == 0)  {
+      close(sockfd);
+      dostuff(newsockfd);
+      exit(0);
+    }
+    else close(newsockfd);
     } /* end of while */
   close(sockfd);
   return 0; 
@@ -63,13 +63,19 @@ int main(int argc, char *argv[])
  *****************************************/
 void dostuff (int sock)
 {
-    int n;
+    int n, running = 1;
     char buffer[256];
-    
-    bzero(buffer,256);
-    n = read(sock,buffer,255);
-    if (n < 0) error("ERROR reading from socket");
-    printf("Here is the message: %s\n",buffer);
-    n = write(sock,"I got your message",18);
-    if (n < 0) error("ERROR writing to socket");
+
+    while(running) {
+      bzero(buffer,256);
+      n = read(sock,buffer,255);
+      if (n < 0) error("ERROR reading from socket");
+      if (strlen(buffer) <= 0) {
+        running = 0;
+        continue;
+      }
+      printf("Here is the message: %s\n",buffer);
+      n = write(sock,"I got your message",18);
+      if (n < 0) error("ERROR writing to socket");
+    }
 }
