@@ -1,5 +1,5 @@
 all:
-	gcc -o server.o server.c -lrt
+	gcc -o server.o server.c -lrt -lpthread
 	gcc -o client.o client.c
 
 mac:

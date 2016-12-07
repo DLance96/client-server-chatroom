@@ -69,7 +69,7 @@ int main(int argc, char *argv[])
     pid = fork();
     while(pid)
     {
-        sleep(.9f);
+        sleep(1);
         printf("> ");
         bzero(buffer,256);
         fgets(buffer,255,stdin);
@@ -83,10 +83,12 @@ int main(int argc, char *argv[])
             error("ERROR writing to socket");
     }
     while(!pid) {
+        fflush(stdout);
         n = read(sockfd,buffer,255);
         if (n < 0)
             error("ERROR reading from socket");
-        printf("%s",buffer);
+        if(strlen(buffer) != 0)
+          printf("%s",buffer);
         bzero(buffer,256);
     }
 }

@@ -42,8 +42,8 @@ int* total_clients;
 int compare(char str1[], char str2[]); /* function prototype */
 void *handle_client(int); /* function prototype */
 int duplicate_client(char[]); /* function prototype */
-void setup_client(char buffer[], int sock);
-void handle_messages(char buffer[],int sock);
+char * setup_client(char buffer[], int sock);
+void handle_messages(char *username, char buffer[],int sock);
 void error(const char *msg)
 {
     perror(msg);
@@ -105,20 +105,23 @@ int main(int argc, char *argv[])
 void *handle_client(int sock)
 {
     char buffer[256];
-    setup_client(buffer,sock);
-    handle_messages(buffer,sock);
+    char* username = setup_client(buffer,sock);
+    handle_messages(username, buffer,sock);
 }
 
 /******** SETUP_CLIENT() *********************
  Runs until client provides valid username.
  *****************************************/
-void setup_client(char buffer[], int sock)
+char * setup_client(char buffer[], int sock)
 {
     int invalid_username = 1;
+    char *username = malloc(256 * sizeof(char));;
     while(invalid_username)
     {
         bzero(buffer,256);
         read(sock,buffer,255);
+        buffer[ strlen(buffer) - 1 ] = '\0';
+        strcpy(username, buffer);
         printf("Username Provided: %s", buffer);
         if(strlen(buffer) >= 20)
         {
@@ -137,6 +140,7 @@ void setup_client(char buffer[], int sock)
             *total_clients = *total_clients + 1;
             invalid_username = 0;
             write(sock,username_success,255);
+            return username;
         }
     }
 }
@@ -146,7 +150,7 @@ void setup_client(char buffer[], int sock)
  supplied by the client. Handles commands, 
  blank messages, and generic messages
  *****************************************/
-void handle_messages(char buffer[], int sock)
+void handle_messages(char *username, char buffer[], int sock)
 {
     int n, running = 1, i;
     while(running) {
@@ -165,9 +169,13 @@ void handle_messages(char buffer[], int sock)
         }
         else
         {
+            char return_message[256];
+            buffer[ strlen(buffer) - 1 ] = '\0';
+            sprintf(return_message, "%s: %s\n> ", username, buffer);
             for(i = 0; i < *total_clients; i++)
             {
-                write(clients_ptr[i].socket,buffer,255);
+              if(strcmp(username, clients_ptr[i].username) != 0)
+                write(clients_ptr[i].socket,return_message,255);
             }
             printf("Here is the message: %s",buffer);
         }
