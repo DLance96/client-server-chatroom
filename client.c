@@ -66,7 +66,6 @@ int main(int argc, char *argv[])
     
     bzero(buffer,256);
     read(sockfd,buffer,255);
-    printf("%s",buffer);
 
     pid = fork();
     while(pid)

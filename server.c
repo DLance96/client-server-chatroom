@@ -10,6 +10,7 @@
 #include <sys/wait.h>
 #include <sys/shm.h>
 #include <sys/stat.h>
+#include <pthread.h>
 
 //SERVER MESSAGES
 char help_command[] = "/help";
@@ -26,19 +27,20 @@ char username_success[] = "Username created!\n";
 char username_length_error[] = "INVALID USERNAME: more than 20 characters\n";
 char username_duplicate_error[] = "INVALID USERNAME: username already exists\n";
 //STRUCTS
+typedef struct Client client;
 struct Client
 {
-    char socket[100];
+    int socket;
     char username[20];
 };
 //OTHER VARIABLES
 const char *name = "Clients";
-void *clients_ptr;
+struct Client *clients_ptr;
 const int SIZE = 100 * sizeof(struct Client);
 int* total_clients;
 //FUNCTIONS
 int compare(char str1[], char str2[]); /* function prototype */
-void handle_client(int); /* function prototype */
+void *handle_client(int); /* function prototype */
 int duplicate_client(char[]); /* function prototype */
 void setup_client(char buffer[], int sock);
 void handle_messages(char buffer[],int sock);
@@ -50,7 +52,8 @@ void error(const char *msg)
 
 int main(int argc, char *argv[])
 {
-  int sockfd, newsockfd, portno, pid, shm_fd;
+  pthread_t threads[100];
+  int sockfd, newsockfd, portno, pid, shm_fd, thread_id = 0;
   socklen_t clilen;
   char buffer[256];
   struct sockaddr_in serv_addr, cli_addr;
@@ -88,16 +91,8 @@ int main(int argc, char *argv[])
       (struct sockaddr *) &cli_addr, &clilen);
     if (newsockfd < 0)
       error("ERROR on accept");
-    pid = fork();
-    if (pid < 0)
-      error("ERROR on fork");
-    if (pid == 0)  {
-      close(sockfd);
-      handle_client(newsockfd);
-      exit(0);
-    }
-    else close(newsockfd);
-    } /* end of while */
+    pthread_create(&threads[thread_id], NULL, handle_client, (void *) newsockfd);
+  } /* end of while */
   close(sockfd);
   return 0; 
 }
@@ -107,7 +102,7 @@ int main(int argc, char *argv[])
  for each connection.  It handles all communication
  once a connnection has been established.
  *****************************************/
-void handle_client(int sock)
+void *handle_client(int sock)
 {
     char buffer[256];
     setup_client(buffer,sock);
@@ -137,7 +132,7 @@ void setup_client(char buffer[], int sock)
         }
         else
         {
-            sprintf(((struct Client *)clients_ptr)[*total_clients].socket, "%d", sock);
+            clients_ptr[*total_clients].socket = sock;
             sprintf(((struct Client *)clients_ptr)[*total_clients].username, "%s", buffer);
             *total_clients = *total_clients + 1;
             invalid_username = 0;
@@ -153,7 +148,7 @@ void setup_client(char buffer[], int sock)
  *****************************************/
 void handle_messages(char buffer[], int sock)
 {
-    int n, running = 1;
+    int n, running = 1, i;
     while(running) {
         bzero(buffer,255);
         n = read(sock,buffer,256);
@@ -170,7 +165,10 @@ void handle_messages(char buffer[], int sock)
         }
         else
         {
-            //send to everyone else
+            for(i = 0; i < *total_clients; i++)
+            {
+                write(clients_ptr[i].socket,buffer,255);
+            }
             printf("Here is the message: %s",buffer);
         }
     }
