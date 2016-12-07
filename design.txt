@@ -1,0 +1,84 @@
+ChatRoom
+————————————
+David Lance
+Alex Tryjankowski
+————————————
+ChatRoom is a client server based application that allows multiple clients to be created and lets them communicate with each other through the server. 
+————————————
+Setup:
+make - makes files client.o and server.o for linux machine
+make mac - makes files for OS X machine
+./server.o 51717 - makes server with given address (51718, etc. to be used if issues arise)
+./client.o localhost 51717 - makes client to server with given address (must match server address) (can use ip address to connect to server on different machine) (can make multiple clients using same command)
+————————————
+Server:
+No input is necessary for the server, it simply serves as a place to monitor input from all clients. You will see Usernames and Messages being output in this terminal window.
+Ctrl+C closes instance of Server. 
+WARNING: Closing a Server instance before its Clients are closed may prevent you from running on same address. Either increment address by one or restart terminal
+————————————
+Client:
+USERNAME
+In order to start communicating, a username needs to be supplied. If must be no more than 20 characters and must be original (server checks for this). Once a valid username is supplied, a message will be displayed saying so. 
+MESSAGES
+To send messages to other clients, simply type the desired message in the terminal window. This will then be send to the server and distributed to other clients.
+COMMANDS
+Commands are messages that are not sent to other users and simply interact with the server. (See command list section below)
+————————————
+Command List: (UNIMPLEMENTED commands function as normal messages)
+/help - displays all commands
+/exit - exits from client instance
+UNIMPLEMENTED /msg [clientName] [message] - sends message only to specified user
+UNIMPLEMENTED /groupmsg - lists all group message commands
+UNIMPLEMENTED /groupmsg create [groupName] - creates group with specified name
+UNIMPLEMENTED /groupmsg send [groupName] [message] - send message to specific group
+UNIMPLEMENTED /groupmsg add [groupName] [clientName] - adds client to specific group
+UNIMPLEMENTED /clients - list all registered clients
+————————————
+Each client server interaction runs on its own thread
+All client credentials are stored in an array of structs which is shared amongst the client threads
+————————————
+CLIENT DEMO:
+ATryjan:client-server-chatroom aetryjan$ ./client.o 172.20.3.137 51717
+> Please enter a username: Bob
+INVALID USERNAME: username already exists
+> ThisNameIsTooLongxxxxxxxxxxxxxxxxxxxxxxxxx
+INVALID USERNAME: more than 20 characters
+> Steve
+Username created!
+> Bob: Hey!
+> Hey Bob!
+> Bob: How are you?
+> Eh, been better? Is Joe on?
+> Joe: Don't forget about me!
+> Joe: I am here
+> yeah yeah...
+> /help
+************HELP************
+/exit - exit client
+/msg [clientName] - private message another client
+/tictactoe [clientName] - start tictactoe match with another client
+/tictactoe team [clientName] - add client to your team for match
+************HELP************
+> /exit
+ATryjan:client-server-chatroom aetryjan$ 
+————————————
+SERVER DEMO:
+CLIENT VIEW
+ATryjan:client-server-chatroom aetryjan$ ./client.o localhost 51718
+> Please enter a username: Steve
+Username created!
+> Henry: Hey Steve!
+> Hey Henry! How's it hangin'?
+> Henry: Just relaxing you know the usual
+> Ah! Well, I'm thinking about how great Koby and Chris are at their jobs ;)
+> Henry: Eh they aren't that special
+> 
+SERVER VIEW
+ATryjan:client-server-chatroom aetryjan$ ./server.o 51718
+Username Provided: Henry
+Username Provided: Steve
+Here is the message: Hey Steve!
+Here is the message: Hey Henry! How's it hangin'?
+Here is the message: Just relaxing you know the usual
+Here is the message: Ah! Well, I'm thinking about how great Koby and Chris are at their jobs ;)
+Here is the message: Eh they aren't that special

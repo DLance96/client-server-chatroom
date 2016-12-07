@@ -122,7 +122,8 @@ char * setup_client(char buffer[], int sock)
         read(sock,buffer,255);
         buffer[ strlen(buffer) - 1 ] = '\0';
         strcpy(username, buffer);
-        printf("Username Provided: %s", buffer);
+        printf("Username Provided: %s\n", buffer);
+        fflush(stdout);
         if(strlen(buffer) >= 20)
         {
             bzero(buffer,256);
@@ -177,7 +178,8 @@ void handle_messages(char *username, char buffer[], int sock)
               if(strcmp(username, clients_ptr[i].username) != 0)
                 write(clients_ptr[i].socket,return_message,255);
             }
-            printf("Here is the message: %s",buffer);
+            printf("Here is the message: %s\n",buffer);
+            fflush(stdout);
         }
     }
 }
