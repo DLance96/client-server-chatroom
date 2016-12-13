@@ -26,6 +26,7 @@ char username_success[] = "Username created!\n";
 //ERRORS
 char username_length_error[] = "INVALID USERNAME: more than 20 characters\n";
 char username_duplicate_error[] = "INVALID USERNAME: username already exists\n";
+char username_spacing_error[] = "INVALID USERNAME: username contains a space\n";
 //STRUCTS
 typedef struct Client client;
 struct Client
@@ -114,10 +115,11 @@ void *handle_client(int sock)
  *****************************************/
 char * setup_client(char buffer[], int sock)
 {
-    int invalid_username = 1;
+    int invalid_username = 1, counter, has_space;
     char *username = malloc(256 * sizeof(char));;
     while(invalid_username)
     {
+        has_space = 0;
         bzero(buffer,256);
         read(sock,buffer,255);
         buffer[ strlen(buffer) - 1 ] = '\0';
@@ -136,6 +138,18 @@ char * setup_client(char buffer[], int sock)
         }
         else
         {
+            for(counter = 0; counter < sizeof(buffer); counter++)
+            {
+                if(buffer[counter] == ' ')
+                {
+                    write(sock,username_spacing_error,255);
+                    has_space = 1;
+                }
+            }
+            if(has_space)
+            {
+                continue;
+            }
             clients_ptr[*total_clients].socket = sock;
             sprintf(((struct Client *)clients_ptr)[*total_clients].username, "%s", buffer);
             *total_clients = *total_clients + 1;
