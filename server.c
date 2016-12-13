@@ -124,15 +124,19 @@ char * setup_client(char buffer[], int sock)
         read(sock,buffer,255);
         buffer[ strlen(buffer) - 1 ] = '\0';
         strcpy(username, buffer);
-        printf("Username Provided: %s\n", buffer);
         fflush(stdout);
-        if(strlen(buffer) >= 20)
+        if (strlen(buffer) <= 0) {
+            pthread_exit(0);
+        }
+        else if(strlen(buffer) >= 20)
         {
+            printf("USERNAME EXCEEDS LENGTH LIMIT: %s\n", buffer);
             bzero(buffer,256);
             write(sock,username_length_error,256);
         }
         else if(duplicate_client(buffer))
         {
+            printf("USERNAME ALREADY EXISTS: %s\n", buffer);
             bzero(buffer,256);
             write(sock,username_duplicate_error,256);
         }
@@ -150,6 +154,7 @@ char * setup_client(char buffer[], int sock)
             {
                 continue;
             }
+            printf("Username Created: %s\n", buffer);
             clients_ptr[*total_clients].socket = sock;
             sprintf(((struct Client *)clients_ptr)[*total_clients].username, "%s", buffer);
             *total_clients = *total_clients + 1;
