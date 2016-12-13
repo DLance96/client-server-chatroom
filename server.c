@@ -45,6 +45,7 @@ void *handle_client(int); /* function prototype */
 int duplicate_client(char[]); /* function prototype */
 char * setup_client(char buffer[], int sock);
 void handle_messages(char *username, char buffer[],int sock);
+void send_to_all_other_users(char *username, char buffer[], int sock, char message[256]);
 void error(const char *msg)
 {
     perror(msg);
@@ -142,7 +143,7 @@ char * setup_client(char buffer[], int sock)
             {
                 if(buffer[counter] == ' ')
                 {
-                    write(sock,username_spacing_error,255);
+                    write(sock,username_spacing_error,256);
                     has_space = 1;
                 }
             }
@@ -187,14 +188,20 @@ void handle_messages(char *username, char buffer[], int sock)
             char return_message[256];
             buffer[ strlen(buffer) - 1 ] = '\0';
             sprintf(return_message, "%s: %s\n> ", username, buffer);
-            for(i = 0; i < *total_clients; i++)
-            {
-              if(strcmp(username, clients_ptr[i].username) != 0)
-                write(clients_ptr[i].socket,return_message,255);
-            }
+            send_to_all_other_users(username, buffer, sock, return_message);
             printf("Here is the message: %s\n",buffer);
             fflush(stdout);
         }
+    }
+}
+
+void send_to_all_other_users(char *username, char buffer[], int sock, char message[256])
+{
+    int i;
+    for(i = 0; i < *total_clients; i++)
+    {
+        if(strcmp(username, clients_ptr[i].username) != 0)
+            write(clients_ptr[i].socket,message,255);
     }
 }
 
