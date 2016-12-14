@@ -240,20 +240,26 @@ void handle_messages(char *username, char buffer[], int sock)
         {
             int i;
             group_index = get_nth_keyword_index(buffer, 2);
-            strncpy(group, buffer+message_index, 230);
+            strncpy(group, buffer+group_index, 20);
             sprintf(message_to_send, "Group added: %s> ", group);
-            for(i = 0; i < *total_groups; i++) {
+            printf("%s", group);
+            fflush(stdout);
               if(!duplicate_group(group)) {
+                  printf("%s", message_to_send);
                   sprintf(((struct Group *)groups_ptr)[*total_groups].name, "%s", group);
+                  printf("%s", message_to_send);
                   groups_ptr[*total_groups].members[0] = get_username_index(username);
+                  printf("%s", message_to_send);
                   groups_ptr[*total_groups].member_count = 1;
+                  printf("%s", message_to_send);
                   *total_groups = *total_groups + 1;
+                  printf("%s", message_to_send);
               }
-            }
         }
         else if(has_x_command(buffer, "/grp ", 5))
         {
             int i, j;
+            //remove these
             message_index = get_nth_keyword_index(buffer, 3);
             strncpy(group, buffer+5, message_index-6);
             strncpy(message_loc, buffer+message_index, 230);
