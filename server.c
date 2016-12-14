@@ -41,11 +41,21 @@ struct Client
     char username[20];
     int online;
 };
+struct Group
+{
+  char name[20];
+  int members[20];
+  int member_count;
+};
 //OTHER VARIABLES
 const char *name = "Clients";
+const char *name_group = "Groups";
 struct Client *clients_ptr;
+struct Group *groups_ptr;
 const int SIZE = 100 * sizeof(struct Client);
+const int GROUP_SIZE = 100 * sizeof(struct Group);
 int* total_clients;
+int* total_groups;
 //FUNCTIONS
 int compare(char str1[], char str2[]); /* function prototype */
 void *handle_client(int); /* function prototype */
@@ -53,7 +63,7 @@ int duplicate_client(char[]); /* function prototype */
 char * setup_client(char buffer[], int sock);
 void handle_messages(char *username, char buffer[],int sock);
 void send_to_all_other_users(char *username, char message[256]);
-int has_msg_command(char buffer[]);
+int has_x_command(char buffer[], char command[], int size);
 int get_nth_keyword_index(char buffer[], int n);
 int send_to_username(char username[25], char message[256]);
 void error(const char *msg)
@@ -65,7 +75,7 @@ void error(const char *msg)
 int main(int argc, char *argv[])
 {
   pthread_t threads[100];
-  int sockfd, newsockfd, portno, pid, shm_fd, thread_id = 0;
+  int sockfd, newsockfd, portno, pid, shm_fd, shm_fd2, thread_id = 0;
   socklen_t clilen;
   char buffer[256];
   struct sockaddr_in serv_addr, cli_addr;
@@ -77,9 +87,12 @@ int main(int argc, char *argv[])
   //Shared Memory declaration
   total_clients = mmap(NULL, sizeof(int), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
   *total_clients = 0;
+  *total_groups = 0;
   shm_fd = shm_open(name, O_CREAT | O_RDWR, 0666);
+  shm_fd2 = shm_open(name_group, O_CREAT | O_RDWR, 0666);
   ftruncate(shm_fd, SIZE);
   clients_ptr = mmap(0, SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
+  groups_ptr = mmap(0, GROUP_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd2, 0);
   if(clients_ptr ==  MAP_FAILED) {
     printf("Map failed\n");
     return -1;
@@ -186,8 +199,8 @@ char * setup_client(char buffer[], int sock)
 void handle_messages(char *username, char buffer[], int sock)
 {
     int n, running = 1, i;
-    char username_loc[25], message_loc[256], message_to_send[256];
-    int username_index = 6, message_index;
+    char username_loc[25], message_loc[256], message_to_send[256], group[25];
+    int username_index = 6, message_index, group_index;
     while(running) {
         bzero(buffer,255);
         n = read(sock,buffer,256);
@@ -206,7 +219,7 @@ void handle_messages(char *username, char buffer[], int sock)
             write(sock,help_string1,255);
             write(sock,help_string2,255);
         }
-        else if(has_msg_command(buffer))
+        else if(has_x_command(buffer, msg_command, 5))
         {
             message_index = get_nth_keyword_index(buffer, 3);
             strncpy(username_loc, buffer+5, message_index-6);
@@ -218,6 +231,28 @@ void handle_messages(char *username, char buffer[], int sock)
                 write(sock,username_generic_error,255);
                 fflush(stdout);
             }
+        }
+        else if(has_x_command(buffer, "/grp ", 5))
+        {
+            int i, j;
+            message_index = get_nth_keyword_index(buffer, 3);
+            strncpy(group, buffer+5, message_index-6);
+            strncpy(message_loc, buffer+message_index, 230);
+            sprintf(message_to_send, "(%s) %s: %s> ", group, username, message_loc);
+            for(i = 0; i < 100; i++) {
+                if(strcmp(group, groups_ptr[i].name) == 0) {
+                    for(j = 0; j < groups_ptr[i].member_count; j++) {
+                        write(clients_ptr[groups_ptr[i].members[j]].socket, message_to_send, 255);
+                    }
+                    i = 100;
+                }
+                else if(i == 100) {
+                    printf("ERROR invalid group nane from user %s\n", username);
+                    write(sock,username_generic_error,255);
+                    fflush(stdout);
+                }
+            }
+            fflush(stdout);
         }
         else if(compare(buffer, online_command))
         {
@@ -282,12 +317,12 @@ int send_to_username(char username[25], char message[256])
  "/msg " keyword. Returns 1 if present.
  Otherwise, returns 0.
  *****************************************/
-int has_msg_command(char buffer[])
+int has_x_command(char buffer[], char command[], int size)
 {
-    char msg_command_loc[10];
+    char x_command_loc[10];
     int i, space_loc;
-    strncpy(msg_command_loc,buffer,5);
-    return(compare(msg_command_loc,msg_command));
+    strncpy(x_command_loc,buffer, size);
+    return(compare(x_command_loc,msg_command));
 }
 
 /******** SEND_TO_ALL_OTHER_USERS() *********************
