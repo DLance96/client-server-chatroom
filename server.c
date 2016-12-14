@@ -15,6 +15,7 @@
 //SERVER MESSAGES
 char help_command[] = "/help";
 char msg_command[] = "/msg ";
+char online_command[] = "/online";
 char help_string1[] =
 "************HELP************\n"
 "/exit - exit client\n"
@@ -22,7 +23,10 @@ char help_string1[] =
 "/tictactoe [clientName] - start tictactoe match with another client\n";
 char help_string2[] =
 "/tictactoe team [clientName] - add client to your team for match\n"
+"/online - lists the users online\n"
 "************HELP************\n";
+char online_string[] = 
+"***********ONLINE***********\n";
 char username_success[] = "Username created!\n";
 //ERRORS
 char username_length_error[] = "INVALID USERNAME: more than 20 characters\n";
@@ -35,6 +39,7 @@ struct Client
 {
     int socket;
     char username[20];
+    int online;
 };
 //OTHER VARIABLES
 const char *name = "Clients";
@@ -114,6 +119,7 @@ void *handle_client(int sock)
     char buffer[256];
     char* username = setup_client(buffer,sock);
     handle_messages(username, buffer,sock);
+    pthread_exit(0);
 }
 
 /******** SETUP_CLIENT() *********************
@@ -130,15 +136,19 @@ char * setup_client(char buffer[], int sock)
         read(sock,buffer,255);
         buffer[ strlen(buffer) - 1 ] = '\0';
         strcpy(username, buffer);
-        printf("Username Provided: %s\n", buffer);
         fflush(stdout);
-        if(strlen(buffer) >= 20)
+        if (strlen(buffer) <= 0) {
+            pthread_exit(0);
+        }
+        else if(strlen(buffer) >= 20)
         {
+            printf("USERNAME EXCEEDS LENGTH LIMIT: %s\n", buffer);
             bzero(buffer,256);
             write(sock,username_length_error,256);
         }
         else if(duplicate_client(buffer))
         {
+            printf("USERNAME ALREADY EXISTS: %s\n", buffer);
             bzero(buffer,256);
             write(sock,username_duplicate_error,256);
         }
@@ -156,7 +166,9 @@ char * setup_client(char buffer[], int sock)
             {
                 continue;
             }
+            printf("Username Created: %s\n", buffer);
             clients_ptr[*total_clients].socket = sock;
+            clients_ptr[*total_clients].online = 1;
             sprintf(((struct Client *)clients_ptr)[*total_clients].username, "%s", buffer);
             *total_clients = *total_clients + 1;
             invalid_username = 0;
@@ -182,8 +194,12 @@ void handle_messages(char *username, char buffer[], int sock)
         if (n < 0) error("ERROR reading from socket");
         if (strlen(buffer) <= 0) {
             //change this to not exit loop? just do nothing
-            running = 0;
-            continue;
+            for(i = 0; i < *total_clients; i++)
+            {
+              if(strcmp(username, clients_ptr[i].username) == 0)
+                  clients_ptr[i].online = 0;
+            }
+            break;
         }
         else if(compare(buffer,help_command))
         {
@@ -202,6 +218,14 @@ void handle_messages(char *username, char buffer[], int sock)
                 write(sock,username_generic_error,255);
                 fflush(stdout);
             }
+        else if(compare(buffer, online_command))
+        {
+            write(sock,online_string, 255);
+            for(i = 0; i < *total_clients; i++) {
+              char str[255];
+              sprintf(str, "- %s %d\n",clients_ptr[i].username ,clients_ptr[i].online);
+              write(sock,str,255);
+            }
         }
         else
         {
@@ -209,7 +233,7 @@ void handle_messages(char *username, char buffer[], int sock)
             buffer[ strlen(buffer) - 1 ] = '\0';
             sprintf(return_message, "%s: %s\n> ", username, buffer);
             send_to_all_other_users(username, return_message);
-            printf("Here is the message: %s\n",buffer);
+            printf("%s: %s\n", username, buffer);
             fflush(stdout);
         }
     }
