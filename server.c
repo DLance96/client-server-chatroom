@@ -17,14 +17,15 @@ char help_command[] = "/help";
 char msg_command[] = "/msg ";
 char grp_msg_command[] = "/grp ";
 char grp_add_command[] = "/grpadd ";
+char grp_mem_command[] = "/grpmem ";
 char online_command[] = "/online";
 char help_string1[] =
 "************HELP************\n"
 "/exit - exit client\n"
 "/msg [clientName] - private message another client\n"
-"/tictactoe [clientName] - start tictactoe match with another client\n";
+"/grp [grpname] [message] - send message to group\n";
 char help_string2[] =
-"/tictactoe team [clientName] - add client to your team for match\n"
+"/grpadd [groupname] - add group\n"
 "/online - lists the users online\n"
 "************HELP************\n";
 char online_string[] = 
@@ -46,7 +47,10 @@ struct Client
 typedef struct Group group;
 struct Group
 {
-  int members;
+    int member1;
+    int member2;
+    int member3;
+    int member4;
   char name[20];
   int member_count;
 };
@@ -73,6 +77,8 @@ int send_to_username(char username[25], char message[256]);
 int get_username_index(char username[]);
 int has_group_add_command(char buffer[]);
 int has_group_msg_command(char buffer[]);
+int has_group_mem_command(char buffer[]);
+int get_group_index(char group[]);
 void error(const char *msg)
 {
     perror(msg);
@@ -253,6 +259,23 @@ void handle_messages(char *username, char buffer[], int sock)
         }
         else if(has_group_msg_command(buffer))
         {
+            //int i, j;
+            //message_index = get_nth_keyword_index(buffer, 3);
+            //strncpy(group, buffer+5, message_index-6);
+            //strncpy(message_loc, buffer+message_index, 230);
+            //sprintf(message_to_send, "(%s) %s: %s> ", group, username, message_loc);
+            //i = get_group_index(group);
+            //if(i == -1)
+            //    continue;
+            //write(clients_ptr[groups_ptr[i].member1].socket, message_to_send, 255);
+            //if(groups_ptr[i].member2 != -1)
+            //    write(clients_ptr[groups_ptr[i].member2].socket, message_to_send, 255);
+            //if(groups_ptr[i].member3 != -1)
+            //    write(clients_ptr[groups_ptr[i].member3].socket, message_to_send, 255);
+            //if(groups_ptr[i].member4 != -1)
+              //  write(clients_ptr[groups_ptr[i].member4].socket, message_to_send, 255);
+            //fflush(stdout);
+            
             int i, j;
             //remove these
             printf("c");
@@ -263,7 +286,7 @@ void handle_messages(char *username, char buffer[], int sock)
             for(i = 0; i < *total_groups; i++) {
                 if(strcmp(group, groups_ptr[i].name) == 0) {
                     for(j = 0; j < groups_ptr[i].member_count; j++) {
-                        write(clients_ptr[groups_ptr[i].members].socket, message_to_send, 255);
+                        write(clients_ptr[groups_ptr[i].member1].socket, message_to_send, 255);
                     }
                     i = 100;
                 }
@@ -275,6 +298,30 @@ void handle_messages(char *username, char buffer[], int sock)
             }
             fflush(stdout);
         }
+        else if(has_group_mem_command(buffer))
+        {
+            int group_num;
+            message_index = get_nth_keyword_index(buffer, 3);
+            strncpy(group, buffer+8, message_index-9);
+            strncpy(message_loc, buffer+message_index, 20);
+            sprintf(message_to_send, "(%s) Added User %s\n> ", group, username);
+            group_num = get_group_index(group);
+            if(group_num == -1) continue;
+            if(((struct Group *)groups_ptr)[*total_groups].member2 == -1)
+            {
+                groups_ptr[*total_groups].member2 = get_username_index(message_loc);
+            }
+            else if(((struct Group *)groups_ptr)[*total_groups].member3 == -1)
+            {
+                groups_ptr[*total_groups].member3 = get_username_index(message_loc);
+            }
+            else if(((struct Group *)groups_ptr)[*total_groups].member4 == -1)
+            {
+                groups_ptr[*total_groups].member4 = get_username_index(message_loc);
+            }
+            fflush(stdout);
+
+        }
         else if(has_group_add_command(buffer))
         {
             int i;
@@ -282,14 +329,17 @@ void handle_messages(char *username, char buffer[], int sock)
             group_index = get_nth_keyword_index(buffer, 2);
             strncpy(group, buffer+group_index, 20);
             sprintf(message_to_send, "Group added: %s> ", group);
-              if(!duplicate_group(group)) {
-                  sprintf(((struct Group *)groups_ptr)[*total_groups].name, "%s", group);
-                  groups_ptr[*total_groups].members = get_username_index(username);
-                  groups_ptr[*total_groups].member_count = 1;
-                  *total_groups = *total_groups + 1;
-                  printf("%s", message_to_send);
-                  fflush(stdout);
-              }
+            if(!duplicate_group(group)) {
+                sprintf(((struct Group *)groups_ptr)[*total_groups].name, "%s", group);
+                groups_ptr[*total_groups].member1 = get_username_index(username);
+                groups_ptr[*total_groups].member2 = -1;
+                groups_ptr[*total_groups].member3 = -1;
+                groups_ptr[*total_groups].member4 = -1;
+                groups_ptr[*total_groups].member_count = 1;
+                *total_groups = *total_groups + 1;
+                printf("%s", message_to_send);
+                fflush(stdout);
+            }
         }
         else if(compare(buffer, online_command))
         {
@@ -379,6 +429,19 @@ int has_group_add_command(char buffer[])
     return 1;
 }
 
+int has_group_mem_command(char buffer[])
+{
+    int i;
+    for(i = 0; i < 8; i++)
+    {
+        if(buffer[i] != grp_mem_command[i]) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+
 int has_group_msg_command(char buffer[])
 {
     int i;
@@ -465,4 +528,14 @@ int get_username_index(char username[]) {
             return i;
     }
     return -1; 
+}
+
+int get_group_index(char group[]) {
+    int i;
+    for(i = 0; i < *total_groups; i++)
+    {
+        if(strcmp(((struct Group *)groups_ptr)[i].name,name)==0)
+            return i;
+    }
+    return -1;
 }
