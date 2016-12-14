@@ -41,6 +41,7 @@ struct Client
     char username[20];
     int online;
 };
+typedef struct Group group;
 struct Group
 {
   char name[20];
@@ -89,6 +90,7 @@ int main(int argc, char *argv[])
   //Shared Memory declaration
   total_clients = mmap(NULL, sizeof(int), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
   *total_clients = 0;
+  total_groups = mmap(NULL, sizeof(int), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
   *total_groups = 0;
   shm_fd = shm_open(name, O_CREAT | O_RDWR, 0666);
   shm_fd2 = shm_open(name_group, O_CREAT | O_RDWR, 0666);
@@ -329,7 +331,7 @@ int send_to_username(char username[25], char message[256])
     return 0;
 }
 
-/******** HAS_MSG_COMMAND() *********************
+/******** HAS_x_COMMAND() *********************
  Check provided char array for the
  "/msg " keyword. Returns 1 if present.
  Otherwise, returns 0.
@@ -337,9 +339,8 @@ int send_to_username(char username[25], char message[256])
 int has_x_command(char buffer[], char command[], int size)
 {
     char x_command_loc[10];
-    int i, space_loc;
     strncpy(x_command_loc,buffer, size);
-    return(compare(x_command_loc,msg_command));
+    return(compare(x_command_loc,command));
 }
 
 /******** SEND_TO_ALL_OTHER_USERS() *********************
