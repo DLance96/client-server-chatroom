@@ -30,6 +30,7 @@ char username_success[] = "Username created!\n";
 //ERRORS
 char username_length_error[] = "INVALID USERNAME: more than 20 characters\n";
 char username_duplicate_error[] = "INVALID USERNAME: username already exists\n";
+char username_spacing_error[] = "INVALID USERNAME: username contains a space\n";
 //STRUCTS
 typedef struct Client client;
 struct Client
@@ -49,6 +50,7 @@ void *handle_client(int); /* function prototype */
 int duplicate_client(char[]); /* function prototype */
 char * setup_client(char buffer[], int sock);
 void handle_messages(char *username, char buffer[],int sock);
+void send_to_all_other_users(char *username, char buffer[], int sock, char message[256]);
 void error(const char *msg)
 {
     perror(msg);
@@ -120,10 +122,11 @@ void *handle_client(int sock)
  *****************************************/
 char * setup_client(char buffer[], int sock)
 {
-    int invalid_username = 1;
+    int invalid_username = 1, counter, has_space;
     char *username = malloc(256 * sizeof(char));;
     while(invalid_username)
     {
+        has_space = 0;
         bzero(buffer,256);
         read(sock,buffer,255);
         buffer[ strlen(buffer) - 1 ] = '\0';
@@ -146,6 +149,18 @@ char * setup_client(char buffer[], int sock)
         }
         else
         {
+            for(counter = 0; counter < sizeof(buffer); counter++)
+            {
+                if(buffer[counter] == ' ')
+                {
+                    write(sock,username_spacing_error,256);
+                    has_space = 1;
+                }
+            }
+            if(has_space)
+            {
+                continue;
+            }
             printf("Username Created: %s\n", buffer);
             clients_ptr[*total_clients].socket = sock;
             clients_ptr[*total_clients].online = 1;
@@ -208,6 +223,16 @@ void handle_messages(char *username, char buffer[], int sock)
             printf("%s: %s\n", username, buffer);
             fflush(stdout);
         }
+    }
+}
+
+void send_to_all_other_users(char *username, char buffer[], int sock, char message[256])
+{
+    int i;
+    for(i = 0; i < *total_clients; i++)
+    {
+        if(strcmp(username, clients_ptr[i].username) != 0)
+            write(clients_ptr[i].socket,message,255);
     }
 }
 
