@@ -30,10 +30,10 @@ Command List: (UNIMPLEMENTED commands function as normal messages)
 /msg [clientName] [message] - sends message only to specified user
 /online- list all registered clients
 
--- WORK ON MAC ONLY -- 
-/grpadd [group name] - creates a group
-/grp [group name] [message] - sends a message to the group
-/grpmem [group name] [clientName] - adds a client to the group
+-- WORK ON MAC ONLY -- (WAS NOT ABLE TO BE COMPLETED BY SUBMISSION TIME)
+/grpadd [group name] - creates a group  (WORKS)
+/grp [group name] [message] - sends a message to the group (WORKS)
+/grpmem [group name] [clientName] - adds a client to the group (DOES NOT WORK)
 ————————————
 Each client server interaction runs on its own thread
 All client credentials are stored in an array of structs which is shared amongst the client threads
