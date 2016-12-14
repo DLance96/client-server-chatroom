@@ -218,6 +218,7 @@ void handle_messages(char *username, char buffer[], int sock)
                 write(sock,username_generic_error,255);
                 fflush(stdout);
             }
+        }
         else if(compare(buffer, online_command))
         {
             write(sock,online_string, 255);
