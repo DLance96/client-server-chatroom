@@ -15,6 +15,8 @@
 //SERVER MESSAGES
 char help_command[] = "/help";
 char msg_command[] = "/msg ";
+char grp_msg_command[] = "/grp ";
+char grp_add_command[] = "/grpadd ";
 char online_command[] = "/online";
 char help_string1[] =
 "************HELP************\n"
@@ -44,8 +46,8 @@ struct Client
 typedef struct Group group;
 struct Group
 {
+  int members;
   char name[20];
-  int members[20];
   int member_count;
 };
 //OTHER VARIABLES
@@ -69,10 +71,19 @@ int has_x_command(char buffer[], char command[], int size);
 int get_nth_keyword_index(char buffer[], int n);
 int send_to_username(char username[25], char message[256]);
 int get_username_index(char username[]);
+int has_group_add_command(char buffer[]);
+int has_group_msg_command(char buffer[]);
 void error(const char *msg)
 {
     perror(msg);
     exit(1);
+}
+
+int has_h_command(char buffer[])
+{
+    char x_command_loc[5];
+    strncpy(x_command_loc,buffer, 5);
+    return(!strcmp(x_command_loc,grp_msg_command));
 }
 
 int main(int argc, char *argv[])
@@ -162,12 +173,14 @@ char * setup_client(char buffer[], int sock)
             printf("USERNAME EXCEEDS LENGTH LIMIT: %s\n", buffer);
             bzero(buffer,256);
             write(sock,username_length_error,256);
+            fflush(stdout);
         }
         else if(duplicate_client(buffer))
         {
             printf("USERNAME ALREADY EXISTS: %s\n", buffer);
             bzero(buffer,256);
             write(sock,username_duplicate_error,256);
+            fflush(stdout);
         }
         else
         {
@@ -190,6 +203,7 @@ char * setup_client(char buffer[], int sock)
             *total_clients = *total_clients + 1;
             invalid_username = 0;
             write(sock,username_success,255);
+            fflush(stdout);
             return username;
         }
     }
@@ -225,6 +239,7 @@ void handle_messages(char *username, char buffer[], int sock)
         }
         else if(has_x_command(buffer, msg_command, 5))
         {
+            printf("a");
             message_index = get_nth_keyword_index(buffer, 3);
             strncpy(username_loc, buffer+5, message_index-6);
             strncpy(message_loc, buffer+message_index, 230);
@@ -236,30 +251,11 @@ void handle_messages(char *username, char buffer[], int sock)
                 fflush(stdout);
             }
         }
-        else if(has_x_command(buffer, "/grpadd ", 8))
-        {
-            int i;
-            group_index = get_nth_keyword_index(buffer, 2);
-            strncpy(group, buffer+group_index, 20);
-            sprintf(message_to_send, "Group added: %s> ", group);
-            printf("%s", group);
-            fflush(stdout);
-              if(!duplicate_group(group)) {
-                  printf("%s", message_to_send);
-                  sprintf(((struct Group *)groups_ptr)[*total_groups].name, "%s", group);
-                  printf("%s", message_to_send);
-                  groups_ptr[*total_groups].members[0] = get_username_index(username);
-                  printf("%s", message_to_send);
-                  groups_ptr[*total_groups].member_count = 1;
-                  printf("%s", message_to_send);
-                  *total_groups = *total_groups + 1;
-                  printf("%s", message_to_send);
-              }
-        }
-        else if(has_x_command(buffer, "/grp ", 5))
+        else if(has_group_msg_command(buffer))
         {
             int i, j;
             //remove these
+            printf("c");
             message_index = get_nth_keyword_index(buffer, 3);
             strncpy(group, buffer+5, message_index-6);
             strncpy(message_loc, buffer+message_index, 230);
@@ -267,26 +263,44 @@ void handle_messages(char *username, char buffer[], int sock)
             for(i = 0; i < *total_groups; i++) {
                 if(strcmp(group, groups_ptr[i].name) == 0) {
                     for(j = 0; j < groups_ptr[i].member_count; j++) {
-                        write(clients_ptr[groups_ptr[i].members[j]].socket, message_to_send, 255);
+                        write(clients_ptr[groups_ptr[i].members].socket, message_to_send, 255);
                     }
                     i = 100;
                 }
                 else if(i == 100) {
-                    printf("ERROR invalid group nane from user %s\n", username);
+                    printf("ERROR invalid group name from user %s\n", username);
                     write(sock,username_generic_error,255);
                     fflush(stdout);
                 }
             }
             fflush(stdout);
         }
+        else if(has_group_add_command(buffer))
+        {
+            int i;
+            printf("b");
+            group_index = get_nth_keyword_index(buffer, 2);
+            strncpy(group, buffer+group_index, 20);
+            sprintf(message_to_send, "Group added: %s> ", group);
+              if(!duplicate_group(group)) {
+                  sprintf(((struct Group *)groups_ptr)[*total_groups].name, "%s", group);
+                  groups_ptr[*total_groups].members = get_username_index(username);
+                  groups_ptr[*total_groups].member_count = 1;
+                  *total_groups = *total_groups + 1;
+                  printf("%s", message_to_send);
+                  fflush(stdout);
+              }
+        }
         else if(compare(buffer, online_command))
         {
+            printf("d");
             write(sock,online_string, 255);
             for(i = 0; i < *total_clients; i++) {
               char str[255];
               sprintf(str, "- %s %d\n",clients_ptr[i].username ,clients_ptr[i].online);
               write(sock,str,255);
             }
+            fflush(stdout);
         }
         else
         {
@@ -294,6 +308,7 @@ void handle_messages(char *username, char buffer[], int sock)
             buffer[ strlen(buffer) - 1 ] = '\0';
             sprintf(return_message, "%s: %s\n> ", username, buffer);
             send_to_all_other_users(username, return_message);
+            fflush(stdout);
             printf("%s: %s\n", username, buffer);
             fflush(stdout);
         }
@@ -347,6 +362,33 @@ int has_x_command(char buffer[], char command[], int size)
     char x_command_loc[10];
     strncpy(x_command_loc,buffer, size);
     return(compare(x_command_loc,command));
+}
+
+/******** HAS_g_COMMAND() *********************
+ hack to get group commands working
+ *****************************************/
+int has_group_add_command(char buffer[])
+{
+    int i;
+    for(i = 0; i < 8; i++)
+    {
+        if(buffer[i] != grp_add_command[i]) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+int has_group_msg_command(char buffer[])
+{
+    int i;
+    for(i = 0; i < 5; i++)
+    {
+        if(buffer[i] != grp_msg_command[i]) {
+            return 0;
+        }
+    }
+    return 1;
 }
 
 /******** SEND_TO_ALL_OTHER_USERS() *********************
