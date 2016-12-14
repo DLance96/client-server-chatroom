@@ -27,12 +27,8 @@ Commands are messages that are not sent to other users and simply interact with 
 Command List: (UNIMPLEMENTED commands function as normal messages)
 /help - displays all commands
 /exit - exits from client instance
-UNIMPLEMENTED /msg [clientName] [message] - sends message only to specified user
-UNIMPLEMENTED /groupmsg - lists all group message commands
-UNIMPLEMENTED /groupmsg create [groupName] - creates group with specified name
-UNIMPLEMENTED /groupmsg send [groupName] [message] - send message to specific group
-UNIMPLEMENTED /groupmsg add [groupName] [clientName] - adds client to specific group
-UNIMPLEMENTED /clients - list all registered clients
+/msg [clientName] [message] - sends message only to specified user
+/online- list all registered clients
 ————————————
 Each client server interaction runs on its own thread
 All client credentials are stored in an array of structs which is shared amongst the client threads
@@ -82,3 +78,24 @@ Here is the message: Hey Henry! How's it hangin'?
 Here is the message: Just relaxing you know the usual
 Here is the message: Ah! Well, I'm thinking about how great Koby and Chris are at their jobs ;)
 Here is the message: Eh they aren't that special
+
+Messaging and online demo:
+____________________________
+
+david@dazzle:client-server-chatroom\ $ ./client.o localhost 51717
+> Please enter a username: Bob
+Username created!
+> Hello
+> Joe: Hi
+> /msg Joe this is a test
+> /online
+***********ONLINE***********
+- Bob 1
+- Joe 1
+> DM from Joe: Gotta go see ya
+> /online
+***********ONLINE***********
+- Bob 1
+- Joe 0
+> 
+
