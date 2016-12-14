@@ -32,6 +32,9 @@ Command List: (UNIMPLEMENTED commands function as normal messages)
 ————————————
 Each client server interaction runs on its own thread
 All client credentials are stored in an array of structs which is shared amongst the client threads
+The client accout runs on two different threads one for reading and one for writing to the server
+The group system stores all the group information in a array of structs (Group structs) which contains 
+  the groups name, members (up to 5), and the number of members for sake of programming
 ————————————
 CLIENT DEMO:
 ATryjan:client-server-chatroom aetryjan$ ./client.o 172.20.3.137 51717
