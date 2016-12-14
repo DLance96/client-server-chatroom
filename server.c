@@ -14,6 +14,7 @@
 
 //SERVER MESSAGES
 char help_command[] = "/help";
+char msg_command[] = "/msg ";
 char online_command[] = "/online";
 char help_string1[] =
 "************HELP************\n"
@@ -31,6 +32,7 @@ char username_success[] = "Username created!\n";
 char username_length_error[] = "INVALID USERNAME: more than 20 characters\n";
 char username_duplicate_error[] = "INVALID USERNAME: username already exists\n";
 char username_spacing_error[] = "INVALID USERNAME: username contains a space\n";
+char username_generic_error[] = "INVALID USERNAME: username could not be found\n";
 //STRUCTS
 typedef struct Client client;
 struct Client
@@ -50,7 +52,10 @@ void *handle_client(int); /* function prototype */
 int duplicate_client(char[]); /* function prototype */
 char * setup_client(char buffer[], int sock);
 void handle_messages(char *username, char buffer[],int sock);
-void send_to_all_other_users(char *username, char buffer[], int sock, char message[256]);
+void send_to_all_other_users(char *username, char message[256]);
+int has_msg_command(char buffer[]);
+int get_nth_keyword_index(char buffer[], int n);
+int send_to_username(char username[25], char message[256]);
 void error(const char *msg)
 {
     perror(msg);
@@ -181,6 +186,8 @@ char * setup_client(char buffer[], int sock)
 void handle_messages(char *username, char buffer[], int sock)
 {
     int n, running = 1, i;
+    char username_loc[25], message_loc[256], message_to_send[256];
+    int username_index = 6, message_index;
     while(running) {
         bzero(buffer,255);
         n = read(sock,buffer,256);
@@ -199,6 +206,18 @@ void handle_messages(char *username, char buffer[], int sock)
             write(sock,help_string1,255);
             write(sock,help_string2,255);
         }
+        else if(has_msg_command(buffer))
+        {
+            message_index = get_nth_keyword_index(buffer, 3);
+            strncpy(username_loc, buffer+5, message_index-6);
+            strncpy(message_loc, buffer+message_index, 230);
+            sprintf(message_to_send, "DM from %s: %s> ", username, message_loc);
+            if(!send_to_username(username_loc, message_to_send))
+            {
+                printf("ERROR invalid DM username from user %s\n", username);
+                write(sock,username_generic_error,255);
+                fflush(stdout);
+            }
         else if(compare(buffer, online_command))
         {
             write(sock,online_string, 255);
@@ -213,20 +232,68 @@ void handle_messages(char *username, char buffer[], int sock)
             char return_message[256];
             buffer[ strlen(buffer) - 1 ] = '\0';
             sprintf(return_message, "%s: %s\n> ", username, buffer);
-            for(i = 0; i < *total_clients; i++)
-            {
-              if(strcmp(username, clients_ptr[i].username) != 0 &&
-                  clients_ptr[i].online == 1) {
-                write(clients_ptr[i].socket,return_message,255);
-              }
-            }
+            send_to_all_other_users(username, return_message);
             printf("%s: %s\n", username, buffer);
             fflush(stdout);
         }
     }
 }
 
-void send_to_all_other_users(char *username, char buffer[], int sock, char message[256])
+/******** GET_NTH_KEYWORD_INDEX() *********************
+ Returns index for start of nth word in buffer.
+ Useful for finding index of message in 
+ "/msg username message".
+ *****************************************/
+int get_nth_keyword_index(char buffer[], int n)
+{
+    int index, space_counter = 0;
+    for(index = 0; index < 27 && space_counter < n - 1; index++)
+    {
+        if(buffer[index] == ' ')
+        {
+            space_counter++;
+        }
+    }
+    return index;
+}
+
+/******** SEND_TO_USERNAME() *********************
+ Sends provided message to specified username.
+ If user does not exist -> return 0
+ Otherwise -> return 1
+ *****************************************/
+int send_to_username(char username[25], char message[256])
+{
+    int i;
+    for(i = 0; i < *total_clients; i++)
+    {
+        if(strcmp(username, clients_ptr[i].username) == 0)
+        {
+            write(clients_ptr[i].socket,message,255);
+            return 1;
+        }
+    }
+    return 0;
+}
+
+/******** HAS_MSG_COMMAND() *********************
+ Check provided char array for the
+ "/msg " keyword. Returns 1 if present.
+ Otherwise, returns 0.
+ *****************************************/
+int has_msg_command(char buffer[])
+{
+    char msg_command_loc[10];
+    int i, space_loc;
+    strncpy(msg_command_loc,buffer,5);
+    return(compare(msg_command_loc,msg_command));
+}
+
+/******** SEND_TO_ALL_OTHER_USERS() *********************
+ Sends supplied message to all other users on 
+ the server except for the supplied username.
+ *****************************************/
+void send_to_all_other_users(char *username, char message[256])
 {
     int i;
     for(i = 0; i < *total_clients; i++)
