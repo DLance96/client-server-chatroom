@@ -225,7 +225,7 @@ void handle_messages(char *username, char buffer[], int sock)
         }
         else if(has_x_command(buffer, msg_command, 5))
         {
-            message_index = get_nth_keyword_index(buffer, 2);
+            message_index = get_nth_keyword_index(buffer, 3);
             strncpy(username_loc, buffer+5, message_index-6);
             strncpy(message_loc, buffer+message_index, 230);
             sprintf(message_to_send, "DM from %s: %s> ", username, message_loc);
