@@ -22,9 +22,7 @@ char help_string1[] =
 "************HELP************\n"
 "/exit - exit client\n"
 "/msg [clientName] - private message another client\n"
-"/tictactoe [clientName] - start tictactoe match with another client\n";
 char help_string2[] =
-"/tictactoe team [clientName] - add client to your team for match\n"
 "/online - lists the users online\n"
 "/grpadd [group name] - creates a group\n"
 "/grp [group name] [message] - sends message to the group\n";
