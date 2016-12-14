@@ -57,15 +57,17 @@ const int GROUP_SIZE = 100 * sizeof(struct Group);
 int* total_clients;
 int* total_groups;
 //FUNCTIONS
-int compare(char str1[], char str2[]); /* function prototype */
-void *handle_client(int); /* function prototype */
-int duplicate_client(char[]); /* function prototype */
+int compare(char str1[], char str2[]);
+void *handle_client(int);
+int duplicate_client(char[]);
+int duplicate_group(char[]);
 char * setup_client(char buffer[], int sock);
 void handle_messages(char *username, char buffer[],int sock);
 void send_to_all_other_users(char *username, char message[256]);
 int has_x_command(char buffer[], char command[], int size);
 int get_nth_keyword_index(char buffer[], int n);
 int send_to_username(char username[25], char message[256]);
+int get_username_index(char username[]);
 void error(const char *msg)
 {
     perror(msg);
@@ -221,7 +223,7 @@ void handle_messages(char *username, char buffer[], int sock)
         }
         else if(has_x_command(buffer, msg_command, 5))
         {
-            message_index = get_nth_keyword_index(buffer, 3);
+            message_index = get_nth_keyword_index(buffer, 2);
             strncpy(username_loc, buffer+5, message_index-6);
             strncpy(message_loc, buffer+message_index, 230);
             sprintf(message_to_send, "DM from %s: %s> ", username, message_loc);
@@ -232,6 +234,21 @@ void handle_messages(char *username, char buffer[], int sock)
                 fflush(stdout);
             }
         }
+        else if(has_x_command(buffer, "/grpadd ", 8))
+        {
+            int i;
+            group_index = get_nth_keyword_index(buffer, 2);
+            strncpy(group, buffer+message_index, 230);
+            sprintf(message_to_send, "Group added: %s> ", group);
+            for(i = 0; i < *total_groups; i++) {
+              if(!duplicate_group(group)) {
+                  sprintf(((struct Group *)groups_ptr)[*total_groups].name, "%s", group);
+                  groups_ptr[*total_groups].members[0] = get_username_index(username);
+                  groups_ptr[*total_groups].member_count = 1;
+                  *total_groups = *total_groups + 1;
+              }
+            }
+        }
         else if(has_x_command(buffer, "/grp ", 5))
         {
             int i, j;
@@ -239,7 +256,7 @@ void handle_messages(char *username, char buffer[], int sock)
             strncpy(group, buffer+5, message_index-6);
             strncpy(message_loc, buffer+message_index, 230);
             sprintf(message_to_send, "(%s) %s: %s> ", group, username, message_loc);
-            for(i = 0; i < 100; i++) {
+            for(i = 0; i < *total_groups; i++) {
                 if(strcmp(group, groups_ptr[i].name) == 0) {
                     for(j = 0; j < groups_ptr[i].member_count; j++) {
                         write(clients_ptr[groups_ptr[i].members[j]].socket, message_to_send, 255);
@@ -361,7 +378,6 @@ int compare(char str1[], char str2[])
 
 /******** DUPLICATE_CLIENT() *********************
  Returns true if there is a duplicate client.
- Currently does not work properly
  *****************************************/
 int duplicate_client(char buffer[])
 {
@@ -372,4 +388,32 @@ int duplicate_client(char buffer[])
             return 1;
     }
     return 0;
+}
+
+/******** DUPLICATE_GROUP() *********************
+ Returns true if there is a duplicate group.
+ *****************************************/
+int duplicate_group(char buffer[])
+{
+    int i;
+    for(i = 0; i < *total_groups; i++)
+    {
+        if(strcmp(((struct Group *)groups_ptr)[i].name,buffer)==0)
+            return 1;
+    }
+    return 0;
+}
+
+
+/******** GET_USERNAME_INDEX() *********************
+ Gets the index of current username
+ *****************************************/
+int get_username_index(char username[]) {
+    int i;
+    for(i = 0; i < *total_clients; i++)
+    {
+        if(strcmp(((struct Client *)clients_ptr)[i].username,username)==0)
+            return i;
+    }
+    return -1; 
 }
