@@ -26,6 +26,10 @@ char help_string1[] =
 char help_string2[] =
 "/tictactoe team [clientName] - add client to your team for match\n"
 "/online - lists the users online\n"
+"/grpadd [group name] - creates a group\n"
+"/grp [group name] [message] - sends message to the group\n";
+char help_string3[] = 
+"/grpmem [group name] [clientName] - adds a client to the group\n"
 "************HELP************\n";
 char online_string[] = 
 "***********ONLINE***********\n";
@@ -46,7 +50,11 @@ struct Client
 typedef struct Group group;
 struct Group
 {
-  int members;
+  int member1;
+  int member2;
+  int member3;
+  int member4;
+  int member5;
   char name[20];
   int member_count;
 };
@@ -156,7 +164,7 @@ void *handle_client(int sock)
 char * setup_client(char buffer[], int sock)
 {
     int invalid_username = 1, counter, has_space;
-    char *username = malloc(256 * sizeof(char));;
+    char *username = malloc(256 * sizeof(char));
     while(invalid_username)
     {
         has_space = 0;
@@ -236,6 +244,7 @@ void handle_messages(char *username, char buffer[], int sock)
         {
             write(sock,help_string1,255);
             write(sock,help_string2,255);
+            write(sock,help_string3,255);
         }
         else if(has_x_command(buffer, msg_command, 5))
         {
@@ -262,15 +271,11 @@ void handle_messages(char *username, char buffer[], int sock)
             sprintf(message_to_send, "(%s) %s: %s> ", group, username, message_loc);
             for(i = 0; i < *total_groups; i++) {
                 if(strcmp(group, groups_ptr[i].name) == 0) {
-                    for(j = 0; j < groups_ptr[i].member_count; j++) {
-                        write(clients_ptr[groups_ptr[i].members].socket, message_to_send, 255);
-                    }
-                    i = 100;
-                }
-                else if(i == 100) {
-                    printf("ERROR invalid group name from user %s\n", username);
-                    write(sock,username_generic_error,255);
-                    fflush(stdout);
+                    write(clients_ptr[groups_ptr[i].member1].socket, message_to_send, 255);
+                    write(clients_ptr[groups_ptr[i].member2].socket, message_to_send, 255);
+                    write(clients_ptr[groups_ptr[i].member3].socket, message_to_send, 255);
+                    write(clients_ptr[groups_ptr[i].member4].socket, message_to_send, 255);
+                    write(clients_ptr[groups_ptr[i].member5].socket, message_to_send, 255);
                 }
             }
             fflush(stdout);
@@ -284,7 +289,7 @@ void handle_messages(char *username, char buffer[], int sock)
             sprintf(message_to_send, "Group added: %s> ", group);
               if(!duplicate_group(group)) {
                   sprintf(((struct Group *)groups_ptr)[*total_groups].name, "%s", group);
-                  groups_ptr[*total_groups].members = get_username_index(username);
+                  groups_ptr[*total_groups].member1 = get_username_index(username);
                   groups_ptr[*total_groups].member_count = 1;
                   *total_groups = *total_groups + 1;
                   printf("%s", message_to_send);
